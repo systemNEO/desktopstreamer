@@ -1,0 +1,10 @@
+{{DOMAIN}} {
+    # MediaMTX HLS-Output durchreichen
+    reverse_proxy localhost:8888
+
+    # Standard-Logging
+    log {
+        output stdout
+        format console
+    }
+}
