@@ -229,7 +229,9 @@ desktopstreamer-server/
 
 ### 8.2 Install-Skript
 
-Aufruf: `curl -fsSL https://desktopstreamer.app/install.sh | bash`
+Aufruf v1: `curl -fsSL https://raw.githubusercontent.com/{org}/desktopstreamer-server/main/install.sh | bash`
+
+(Eigene Domain mit 301-Redirect ist v1.1+-Polish; GitHub-Raw-URL reicht für Launch.)
 
 Skript-Logik:
 1. `/etc/os-release` lesen → Distro-Erkennung (Ubuntu, Debian, Fedora als Tier-1; andere Distros: Warnung)
@@ -353,7 +355,7 @@ Für v1 explizit nicht im Scope — der Lokal-Modus deckt 90% der Use-Cases ab.
 ## 13. Open Questions
 
 - **Twitch-App-Registrierung**: Wer registriert die Twitch-Developer-App (User-Account vs. Org)? Client-ID muss vor Release fix sein.
-- **Domain für install.sh**: Welche Domain? `desktopstreamer.app` zur Reservierung empfohlen.
+- ~~**Domain für install.sh**~~: erledigt — wird zunächst über GitHub-Raw-URL ausgeliefert; eigene Domain optional in v1.1+ als kosmetischer 301-Redirect.
 - **GitHub-Repo-Org**: Persönliches Repo oder Org? Beeinflusst Issue-Tracking, Releases-URL.
 - **CI-Budget**: GitHub-Actions-Free-Tier reicht für ~3 Builds/Tag; bei mehr ein eigener Runner sinnvoll.
 
