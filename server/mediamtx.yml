@@ -15,7 +15,7 @@ hlsVariant: lowLatency
 hlsSegmentCount: 7
 hlsSegmentDuration: 1s
 hlsPartDuration: 200ms
-hlsAllowOrigin: '*'
+hlsAllowOrigins: ['*']
 
 # Andere Protokolle deaktivieren
 rtsp: no
