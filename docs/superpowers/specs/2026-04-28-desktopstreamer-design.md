@@ -50,9 +50,12 @@ Drei Deliverables, zwei davon ausgeliefert. Alles in einem Monorepo unter `githu
 - TypeScript
 - React + Vite (Renderer)
 - Tailwind CSS
-- `obs-studio-node` (libobs-Bindings, von Streamlabs gepflegt)
+- **OBS Studio als externe Streaming-Engine** (auto-detected oder auto-installed)
+- `obs-websocket-js` (WebSocket-Client für die obs-websocket-API, in OBS 28+ eingebaut)
 - `keytar` (OS-Keystore: Windows Credential Manager)
 - `ssh2` *(nur für v2 / Remote-Provisioning, nicht v1)*
+
+**Architektur-Wechsel (post-Brainstorming-Erkenntnis):** Ursprünglich war `obs-studio-node` (libobs-Embedding) geplant. Beim näheren Blick auf die Implementierungs-Realität (kaum API-Doku, ~150 MB Native-Bundle, kein offizielles arm64-Windows, GPL-Viralität) erwies sich das als deutlich riskanter und aufwändiger als der Auto-Install-OBS-via-WebSocket-Approach. Plan B2 setzt deshalb auf das WebSocket-Protokoll. Vorteile: drastisch kleineres Bundle, alle drei Architekturen "frei Haus", Game-Capture funktioniert auch auf arm64, Lizenz nicht mehr GPL-erzwungen.
 
 **Bundled Binaries (in `resources/`):**
 - `mediamtx` für Lokal-Modus (windows-amd64, windows-arm64, windows-386)
@@ -65,29 +68,31 @@ Drei Deliverables, zwei davon ausgeliefert. Alles in einem Monorepo unter `githu
 
 ---
 
-## 3. Streaming-Pipeline (libobs intern)
+## 3. Streaming-Pipeline (OBS extern via WebSocket)
 
 ```
-[Capture-Source]   →   [Scene]   →   [Encoder]   →   [Output]
- monitor_capture        1 Scene      NVENC > QSV     RTMP-Mux
- window_capture         1 Source     > AMF > x264    (FLV-Container)
- wasapi_input/output                  Auto-Detect      ↓
-                                                     RTMP an
-                                                     Twitch / Lokal /
-                                                     Custom
+[Desktopstreamer-App]      [obs-websocket]      [OBS Studio]
+                              ws://             (im Tray, headless)
+ UI-Klick "Live"  ──────►   localhost:4455 ──►  Capture / Scene / Encoder
+                                                / Output managed von OBS
+ GetStats() polling ◄────── ws ──────────────── interne Stats
 ```
 
-### 3.1 Defaults v1 (nicht in UI exposed)
+**Was OBS für uns übernimmt** (alles via WebSocket-API gesteuert): Capture-Pipeline (DXGI/WGC für Screen/Window/Game-Hook, WASAPI für Audio), Scene-Komposition (eine Scene mit einer Source pro v1), Encoder-Auswahl (Hardware-Detect: NVENC/QSV/AMF/x264), RTMP-Output, Reconnect-Logik, Bitrate-Adaption. Wir schicken nur "tu das" und holen Status ab.
+
+### 3.1 Defaults v1 (in OBS-Profile vorkonfiguriert, nicht in UI exposed)
 
 | Parameter | Wert |
 |---|---|
 | Auflösung | Quelle, gecapped auf 1920x1080 (aspect-preserving fit; Quellen ≤1080p werden nicht hochskaliert) |
 | Framerate | 60 fps wenn Quelle 60 liefert, sonst 30 |
-| Encoder | Hardware-Auto-Detect: NVENC → QSV → AMF → x264 |
+| Encoder | OBS Auto-Detect: NVENC → QSV → AMF → x264 |
 | Video-Bitrate | 6000 kbps CBR |
 | Audio-Codec | AAC, 160 kbps stereo |
 | Keyframe-Interval | 2 s |
-| Reconnect | aktiv, mit dynamischer Bitrate-Anpassung |
+| Reconnect | OBS' eingebauter Reconnect, dynamische Bitrate aktiv |
+
+Wir schreiben diese Defaults in ein **eigenes OBS-Profil** (`%APPDATA%\obs-studio\basic\profiles\Desktopstreamer\`), damit wir den Stream-Stack konfigurieren ohne ein bestehendes User-Profil zu touchen. WebSocket-Call `SetCurrentProfile` schaltet vor jeder Stream-Session auf unser Profil um.
 
 ### 3.2 Audio-Mixing
 
@@ -294,7 +299,7 @@ Für v1 explizit nicht im Scope — der Lokal-Modus deckt 90% der Use-Cases ab.
 
 | Modul | Verantwortung | Stellt Renderer bereit |
 |---|---|---|
-| `OBSManager` | libobs-Lifecycle, Source-Enumeration, Scene/Encoder/Output-Konfig, Stream-Lifecycle | `listSources()`, `setSource()`, `setAudio()`, `startStream()`, `stopStream()`, `getStats()` |
+| `OBSManager` | OBS-Detect, Auto-Install, Profile-Writer, Process-Spawn (headless), WebSocket-Connect, Source-Enumeration, Scene/Stream-Lifecycle | `listSources()`, `setSource()`, `setAudio()`, `startStream()`, `stopStream()`, `getStats()`, `getInstallStatus()` |
 | `TwitchAuth` | OAuth-Flow, Token-Persistenz, Helix-API | `connect()`, `disconnect()`, `getCurrentUser()`, `getStreamKey()`, `getIngest()` |
 | `LocalServerMgr` | MediaMTX- und cloudflared-Child-Prozesse | `startLocal()`, `stopLocal()`, `enableTunnel()`, `getUrls()` |
 | `ConfigStore` | App-Settings (gewähltes Ziel, letzte Source, etc.) | `get()`, `set()`, `subscribe()` |
@@ -318,8 +323,10 @@ Für v1 explizit nicht im Scope — der Lokal-Modus deckt 90% der Use-Cases ab.
 
 | Risiko | Konsequenz | Mitigation |
 |---|---|---|
-| **GPL-2.0 (libobs)** | App muss GPL-2.0-kompatibel lizenziert sein | App von Anfang an GPL-2.0; Source öffentlich auf GitHub |
-| **`obs-studio-node` arm64** | Native Bindings für Windows-on-ARM noch unreif | arm64-Build prüfen; ggf. selbst kompilieren; Tier-2 markieren |
+| ~~**GPL-2.0 (libobs)**~~ | ~~App muss GPL-2.0-kompatibel sein~~ | erledigt — wir embedden libobs nicht mehr, sondern sprechen via Netzwerk-Protokoll mit OBS. Lizenz auf **MIT** umgestellt. |
+| **OBS-Auto-Install-Flow** | Download-Failures, Silent-Install schlägt fehl, OBS-Version-Drift bricht WebSocket-API | Min-OBS-Version pinnen (≥30.0); klare Fehlerdialoge; manueller Install als Fallback dokumentieren |
+| **OBS-Profile-Kollision** | User hat eigene OBS-Profile / Streams laufen | Eigenes Profil "Desktopstreamer" vor jedem Stream via WS aktivieren; nach Stream-Ende User-Profil wiederherstellen wenn vorhanden |
+| **OBS-Process-Lifecycle** | OBS abgestürzt → unsere App weiss nicht mehr was Sache ist | WebSocket-Reconnect-Loop, Heartbeat-Polling, OBS-Process-Watcher (Re-spawn bei unerwartetem Exit) |
 | **Code-Signing-Reputation** | Unsignierte Apps zeigen SmartScreen-Warnung | Standard-Cert + Reputation-Aufbau, später EV |
 | **Twitch-ToS** | Inhalts-/Kategorie-Regeln | User-Verantwortung; ToS-Hinweis in Onboarding |
 | **trycloudflare-Limits** | CF kann rate-limiten | In Doku transparent; Manual-Tunnel mit eigenem CF-Account dokumentieren |
@@ -331,11 +338,12 @@ Für v1 explizit nicht im Scope — der Lokal-Modus deckt 90% der Use-Cases ab.
 
 ### v1 (MVP)
 
-- Single-Source-Streaming (Bildschirm/Fenster/Audio)
+- Single-Source-Streaming (Bildschirm/Fenster/Audio) via OBS-Engine
+- OBS-Auto-Install bei Erstnutzung
 - Twitch OAuth + Stream
 - Lokal-Modus mit MediaMTX-Bundle + optionaler Cloudflare-Tunnel
 - Custom-RTMP-Modus
-- Windows x64 (Primärziel), arm64+x86 als Stretch-Goal
+- Windows x64, arm64 und x86 alle in v1 möglich (OBS unterstützt alle drei)
 - Optionales Remote-Server-Repo (manuelle Installation)
 
 ### v1.1
