@@ -4,8 +4,6 @@ services:
     network_mode: host
     volumes:
       - ./mediamtx.yml:/mediamtx.yml:ro
-    environment:
-      - MTX_STREAM_KEY=${STREAM_KEY:?STREAM_KEY must be set}
     restart: unless-stopped
 
   caddy:

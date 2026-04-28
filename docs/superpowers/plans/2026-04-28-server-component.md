@@ -38,8 +38,8 @@ server/
 - `install.sh`: Orchestriert den End-to-End-Flow (Detect → Install Docker → Render → Compose Up → Print URLs). Quellt die `lib/`-Skripte für die einzelnen Schritte.
 - `lib/*.sh`: Pure Funktionen, einzeln testbar mit bats.
 - `Caddyfile.*`: Templates mit `{{DOMAIN}}`-Platzhaltern, die `render-configs.sh` ersetzt.
-- `mediamtx.yml`: Statische Config (Stream-Key kommt via Env-Var aus Compose).
-- `docker-compose.yml`: Statisch, liest Env-Vars (`STREAM_KEY`, `DOMAIN`) aus `.env`-File, das `install.sh` schreibt.
+- `mediamtx.yml`: Statische Config. **Auth-Modell**: Path-as-Secret — der Stream-Key ist Teil des RTMP-Pfads (`rtmp://host/live/STREAMKEY`), nicht via RTMP-Credentials. Matched dem Twitch/YouTube-Modell und funktioniert mit OBS' Stream-Key-Feld out-of-the-box. 24-Zeichen-Hex-Random ist brute-force-sicher.
+- `docker-compose.yml`: Statisch, liest `DOMAIN` aus `.env` (für Caddy). `STREAM_KEY` in `.env` ist nur zur Persistenz (damit der Installer ihn später wieder anzeigen kann).
 
 ---
 
@@ -1082,7 +1082,9 @@ mkdir dskt-test && cd dskt-test
 cp /home/hpb/projects/desktopstreamer/server/mediamtx.yml .
 cp /home/hpb/projects/desktopstreamer/server/Caddyfile.ip ./Caddyfile
 cp /home/hpb/projects/desktopstreamer/server/docker-compose.yml .
+# .env wird zur Persistenz angelegt; MediaMTX selbst nutzt STREAM_KEY nicht
 echo "STREAM_KEY=testkey123456789abcdef012" > .env
+echo "DOMAIN=" >> .env
 docker compose up -d
 sleep 5
 docker compose ps
@@ -1100,16 +1102,16 @@ ffmpeg -re -f lavfi -i testsrc=size=1280x720:rate=30 \
        -c:v libx264 -preset veryfast -tune zerolatency -b:v 2M \
        -c:a aac -b:a 128k \
        -f flv -t 30 \
-       "rtmp://localhost:1935/live/teststream?user=streamer&pass=testkey123456789abcdef012"
+       "rtmp://localhost:1935/live/testkey123456789abcdef012"
 ```
 
-Expected: ffmpeg läuft 30s ohne Fehler, MediaMTX-Logs zeigen „[RTMP] [conn] opened" und „[path teststream] [publisher] ready".
+Expected: ffmpeg läuft 30s ohne Fehler, MediaMTX-Logs zeigen „[RTMP] [conn] opened" und „[path live/testkey123456789abcdef012] [publisher] ready".
 
 - [ ] **Step 3: HLS-Endpunkt abfragen**
 
 Während ffmpeg läuft, in drittem Terminal:
 ```bash
-curl -sk https://localhost/live/teststream/index.m3u8 | head -20
+curl -sk https://localhost/live/testkey123456789abcdef012/index.m3u8 | head -20
 ```
 
 Expected: M3U8-Manifest mit `#EXTM3U`, `#EXT-X-VERSION:`, Segment-URIs.

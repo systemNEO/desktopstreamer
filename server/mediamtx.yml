@@ -22,13 +22,10 @@ rtsp: no
 webrtc: no
 srt: no
 
-# Globale Pfad-Defaults: Auth via Stream-Key
-pathDefaults:
-  publishUser: streamer
-  publishPass: ${MTX_STREAM_KEY}
-  readUser: ""
-  readPass: ""
-
-# Catch-all-Pfad: jeder String funktioniert als Stream-Name
+# Auth-Modell: Path-as-Secret (wie Twitch/YouTube).
+# Der zufällige Stream-Key wird Teil des RTMP-Pfads
+# (z. B. rtmp://server/live/STREAMKEY). MediaMTX akzeptiert jeden
+# Pfad und serviert ihn unter https://server/PATH/index.m3u8.
+# 24 Zeichen Hex-Random sind für Brute-Force praktisch unbreakable.
 paths:
   all_others:
