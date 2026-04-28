@@ -52,4 +52,6 @@ Details und manuelle Installation siehe [`server/README.md`](server/README.md).
 
 ## Lizenz
 
-GPL-2.0-or-later (wegen Verwendung von libobs, das selbst GPL-2.0 ist).
+MIT — frei verwendbar. OBS Studio (GPL-2.0) wird zur Laufzeit als
+unabhängiger Prozess gestartet, nicht eingebettet — die Lizenzen
+beeinflussen sich daher nicht.

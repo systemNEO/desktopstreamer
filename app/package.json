@@ -2,7 +2,7 @@
   "name": "desktopstreamer",
   "version": "0.1.0",
   "description": "Discord-artige Desktop-Streaming-App",
-  "license": "GPL-2.0-or-later",
+  "license": "MIT",
   "author": "systemNEO",
   "main": "out/main/index.js",
   "type": "module",

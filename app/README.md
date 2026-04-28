@@ -58,4 +58,4 @@ Main und Renderer kommunizieren ausschließlich über typed IPC. Renderer hat **
 
 ## Lizenz
 
-GPL-2.0-or-later (siehe Hauptrepo).
+MIT (siehe LICENSE-Datei).
