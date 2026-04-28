@@ -1,4 +1,4 @@
-import type { AppConfig, Source, StreamStats } from '@shared/types';
+import type { AppConfig, Source, StreamStats, OBSStatus, InstallProgress } from '@shared/types';
 
 export const ipc = {
   async getConfig(): Promise<AppConfig> {
@@ -18,5 +18,14 @@ export const ipc = {
   },
   async getStats(): Promise<StreamStats> {
     return window.api.stream.getStats();
+  },
+  async getObsStatus(): Promise<OBSStatus> {
+    return window.api.obs.getStatus();
+  },
+  onObsStatusEvent(cb: (s: OBSStatus) => void): () => void {
+    return window.api.obs.onStatusEvent(cb);
+  },
+  onInstallProgress(cb: (p: InstallProgress) => void): () => void {
+    return window.api.obs.onInstallProgress(cb);
   }
 };

@@ -5,6 +5,7 @@ import Store from 'electron-store';
 import type { AppConfig } from '@shared/types';
 import { ConfigStore } from './config-store.js';
 import { registerIpcHandlers } from './ipc-handlers.js';
+import { OBSManager } from './obs/manager.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -70,9 +71,17 @@ if (gotSingleInstanceLock) {
     });
     const configStore = new ConfigStore(electronStore as never);
 
-    registerIpcHandlers(configStore);
+    const obsManager = new OBSManager();
+    registerIpcHandlers(configStore, obsManager, () => mainWindow);
 
     createWindow();
+
+    // OBS-Init starten — non-blocking, Renderer kriegt Status via Events
+    void obsManager.ensureReady();
+
+    app.on('before-quit', () => {
+      void obsManager.shutdown();
+    });
 
     app.on('activate', () => {
       if (BrowserWindow.getAllWindows().length === 0) createWindow();
