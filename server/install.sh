@@ -10,6 +10,10 @@ REPO_URL="https://github.com/systemNEO/desktopstreamer"
 RAW_BASE="https://raw.githubusercontent.com/systemNEO/desktopstreamer/main/server"
 INSTALL_DIR="/opt/desktopstreamer-server"
 
+# In non-interactiven Shells (Container, sudo ohne -E) kann $USER fehlen.
+USER="${USER:-$(whoami)}"
+export USER
+
 # ---------- helpers ----------
 
 # Erkennt, ob das Skript via "curl | bash" ausgeführt wird (Pipe-Modus)
@@ -122,28 +126,34 @@ write_env_file "$INSTALL_DIR" "$STREAM_KEY" "$DOMAIN"
 
 # 7. Compose starten — nutzt sudo wenn die docker-Gruppe für diesen Prozess
 # noch nicht aktiv ist (z. B. bei Frisch-Installation in derselben Session).
-echo ""
-echo "==> Starte Container..."
+# DSKT_SKIP_COMPOSE=1 überspringt den Compose-Lauf (für E2E-Tests).
 cd "$INSTALL_DIR"
-if can_run_docker; then
-    docker compose up -d
+if [[ "${DSKT_SKIP_COMPOSE:-0}" == "1" ]]; then
+    echo ""
+    echo "==> DSKT_SKIP_COMPOSE=1 gesetzt — überspringe docker compose up"
 else
-    echo "    (Docker-Gruppe für $USER greift erst nach Re-Login;"
-    echo "     verwende sudo für diesen ersten Start)"
-    _sudo_or_root docker compose up -d
-fi
+    echo ""
+    echo "==> Starte Container..."
+    if can_run_docker; then
+        docker compose up -d
+    else
+        echo "    (Docker-Gruppe für $USER greift erst nach Re-Login;"
+        echo "     verwende sudo für diesen ersten Start)"
+        _sudo_or_root docker compose up -d
+    fi
 
-# Kurz warten und Health prüfen
-sleep 3
-if can_run_docker; then
-    DOCKER="docker"
-else
-    DOCKER="sudo docker"
-fi
-if ! $DOCKER compose ps --status running --quiet | grep -q .; then
-    echo "FEHLER: Container laufen nicht. Logs:" >&2
-    $DOCKER compose logs --tail 50 >&2
-    exit 1
+    # Kurz warten und Health prüfen
+    sleep 3
+    if can_run_docker; then
+        DOCKER="docker"
+    else
+        DOCKER="sudo docker"
+    fi
+    if ! $DOCKER compose ps --status running --quiet | grep -q .; then
+        echo "FEHLER: Container laufen nicht. Logs:" >&2
+        $DOCKER compose logs --tail 50 >&2
+        exit 1
+    fi
 fi
 
 # 8. Output: Connection-URLs

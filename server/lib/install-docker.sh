@@ -34,7 +34,8 @@ is_docker_installed() {
 # greifen erst nach Re-Login.
 can_run_docker() {
     [[ $EUID -eq 0 ]] && return 0
-    id -nG "$USER" 2>/dev/null | grep -qw docker
+    local user="${USER:-$(whoami)}"
+    id -nG "$user" 2>/dev/null | grep -qw docker
 }
 
 # install_docker
@@ -63,8 +64,9 @@ install_docker() {
     rm -f /tmp/get-docker.sh
 
     if [[ $EUID -ne 0 ]]; then
-        echo "==> Füge $USER zur docker-Gruppe hinzu..."
-        _sudo_or_root usermod -aG docker "$USER"
+        local user="${USER:-$(whoami)}"
+        echo "==> Füge $user zur docker-Gruppe hinzu..."
+        _sudo_or_root usermod -aG docker "$user"
     fi
 
     echo "==> Aktiviere und starte docker-Service..."
