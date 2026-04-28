@@ -16,7 +16,7 @@ Eine Desktop-Anwendung, die Discord-artig einfach das Streamen eines Bildschirm-
 
 ## 2. System-Architektur
 
-Drei Deliverables, zwei davon ausgeliefert:
+Drei Deliverables, zwei davon ausgeliefert. Alles in einem Monorepo unter `github.com/systemNEO/desktopstreamer` (`app/`, `server/`, `docs/`):
 
 ```
 ┌─────────────────────────────────────┐
@@ -229,7 +229,7 @@ desktopstreamer-server/
 
 ### 8.2 Install-Skript
 
-Aufruf v1: `curl -fsSL https://raw.githubusercontent.com/{org}/desktopstreamer-server/main/install.sh | bash`
+Aufruf v1: `curl -fsSL https://raw.githubusercontent.com/systemNEO/desktopstreamer/main/server/install.sh | bash`
 
 (Eigene Domain mit 301-Redirect ist v1.1+-Polish; GitHub-Raw-URL reicht für Launch.)
 
@@ -356,7 +356,7 @@ Für v1 explizit nicht im Scope — der Lokal-Modus deckt 90% der Use-Cases ab.
 
 - **Twitch-App-Registrierung**: Wer registriert die Twitch-Developer-App (User-Account vs. Org)? Client-ID muss vor Release fix sein.
 - ~~**Domain für install.sh**~~: erledigt — wird zunächst über GitHub-Raw-URL ausgeliefert; eigene Domain optional in v1.1+ als kosmetischer 301-Redirect.
-- **GitHub-Repo-Org**: Persönliches Repo oder Org? Beeinflusst Issue-Tracking, Releases-URL.
+- ~~**GitHub-Repo-Org**~~: erledigt — `github.com/systemNEO/desktopstreamer` als Monorepo (App in `app/`, Server in `server/`, Doku in `docs/`).
 - **CI-Budget**: GitHub-Actions-Free-Tier reicht für ~3 Builds/Tag; bei mehr ein eigener Runner sinnvoll.
 
 ---
