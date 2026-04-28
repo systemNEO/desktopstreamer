@@ -1,11 +1,5 @@
-{
-    # Selbst-signiertes Cert für IP-Modus
-    auto_https off
-}
-
-:443 {
+https://{{HOST}} {
     tls internal
-
     reverse_proxy localhost:8888
 
     log {
@@ -14,7 +8,6 @@
     }
 }
 
-# HTTP-Redirect auf HTTPS
-:80 {
+http://{{HOST}} {
     redir https://{host}{uri} permanent
 }

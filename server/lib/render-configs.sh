@@ -12,21 +12,23 @@ generate_stream_key() {
     fi
 }
 
-# render_caddyfile <work-dir> <mode> <domain>
+# render_caddyfile <work-dir> <mode> <host>
 # mode: "domain" | "ip"
-# Kopiert das passende Template ins Work-Dir und ersetzt {{DOMAIN}} ggf.
+# host: für domain-mode der DNS-Name; für ip-mode die öffentliche IP
+# Kopiert das passende Template ins Work-Dir und ersetzt {{HOST}}/{{DOMAIN}}.
 render_caddyfile() {
     local work_dir="$1"
     local mode="$2"
-    local domain="$3"
+    local host="$3"
 
     case "$mode" in
         domain)
-            sed "s|{{DOMAIN}}|${domain}|g" "$work_dir/Caddyfile.domain" \
+            sed "s|{{DOMAIN}}|${host}|g" "$work_dir/Caddyfile.domain" \
                 > "$work_dir/Caddyfile"
             ;;
         ip)
-            cp "$work_dir/Caddyfile.ip" "$work_dir/Caddyfile"
+            sed "s|{{HOST}}|${host}|g" "$work_dir/Caddyfile.ip" \
+                > "$work_dir/Caddyfile"
             ;;
         *)
             echo "FEHLER: render_caddyfile: unbekannter Modus '$mode'" >&2

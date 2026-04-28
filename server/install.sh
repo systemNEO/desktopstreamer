@@ -14,6 +14,15 @@ INSTALL_DIR="/opt/desktopstreamer-server"
 USER="${USER:-$(whoami)}"
 export USER
 
+# Public-IP via mehrere Fallbacks ermitteln (api.ipify → icanhazip → lokal)
+detect_public_ip() {
+    local ip
+    ip=$(curl -fsSL --max-time 5 https://api.ipify.org 2>/dev/null) && [[ -n "$ip" ]] && { echo "$ip"; return; }
+    ip=$(curl -fsSL --max-time 5 https://icanhazip.com 2>/dev/null | tr -d '[:space:]') && [[ -n "$ip" ]] && { echo "$ip"; return; }
+    ip=$(hostname -I 2>/dev/null | awk '{print $1}') && [[ -n "$ip" ]] && { echo "$ip"; return; }
+    echo "YOUR-SERVER-IP"
+}
+
 # ---------- helpers ----------
 
 # Erkennt, ob das Skript via "curl | bash" ausgeführt wird (Pipe-Modus)
@@ -143,7 +152,17 @@ else
     STREAM_KEY=$(generate_stream_key)
     echo "==> Neuer Stream-Key generiert."
 fi
-render_caddyfile "$INSTALL_DIR" "$MODE" "$DOMAIN"
+
+# Host für Caddyfile bestimmen (Domain oder Public-IP)
+if [[ "$MODE" == "domain" ]]; then
+    CADDY_HOST="$DOMAIN"
+else
+    echo "==> Ermittle öffentliche IP-Adresse..."
+    CADDY_HOST=$(detect_public_ip)
+    echo "    Public-IP: $CADDY_HOST"
+fi
+
+render_caddyfile "$INSTALL_DIR" "$MODE" "$CADDY_HOST"
 write_env_file "$INSTALL_DIR" "$STREAM_KEY" "$DOMAIN"
 
 # 7. Compose starten — nutzt sudo wenn die docker-Gruppe für diesen Prozess
@@ -179,15 +198,7 @@ else
 fi
 
 # 8. Output: Connection-URLs
-# Public-IP via mehrere Fallbacks ermitteln (api.ipify → icanhazip → lokal)
-detect_public_ip() {
-    local ip
-    ip=$(curl -fsSL --max-time 5 https://api.ipify.org 2>/dev/null) && [[ -n "$ip" ]] && { echo "$ip"; return; }
-    ip=$(curl -fsSL --max-time 5 https://icanhazip.com 2>/dev/null | tr -d '[:space:]') && [[ -n "$ip" ]] && { echo "$ip"; return; }
-    ip=$(hostname -I 2>/dev/null | awk '{print $1}') && [[ -n "$ip" ]] && { echo "$ip"; return; }
-    echo "YOUR-SERVER-IP"
-}
-PUBLIC_HOST="${DOMAIN:-$(detect_public_ip)}"
+PUBLIC_HOST="$CADDY_HOST"
 
 echo ""
 echo "============================================"

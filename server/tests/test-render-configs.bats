@@ -32,10 +32,12 @@ teardown() {
     ! grep -q "{{DOMAIN}}" "$WORK_DIR/Caddyfile"
 }
 
-@test "render_caddyfile: kopiert IP-Template wörtlich" {
-    render_caddyfile "$WORK_DIR" "ip" ""
+@test "render_caddyfile: ersetzt {{HOST}} im IP-Template mit IP" {
+    render_caddyfile "$WORK_DIR" "ip" "203.0.113.42"
     [[ -f "$WORK_DIR/Caddyfile" ]]
+    grep -q "203.0.113.42" "$WORK_DIR/Caddyfile"
     grep -q "tls internal" "$WORK_DIR/Caddyfile"
+    ! grep -q "{{HOST}}" "$WORK_DIR/Caddyfile"
 }
 
 @test "write_env_file: schreibt STREAM_KEY ins .env" {
