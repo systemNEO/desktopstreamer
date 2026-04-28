@@ -1,5 +1,6 @@
 import { Header } from './components/Header';
 import { SectionCard } from './components/SectionCard';
+import { InstallProgressDialog } from './components/InstallProgressDialog';
 import { SourcePicker } from './views/SourcePicker';
 import { DestinationPicker } from './views/DestinationPicker';
 import { StreamControl } from './views/StreamControl';
@@ -19,6 +20,7 @@ export function App() {
           <StreamControl />
         </SectionCard>
       </main>
+      <InstallProgressDialog />
     </div>
   );
 }
