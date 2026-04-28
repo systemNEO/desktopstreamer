@@ -99,8 +99,8 @@ esac
 # 5. Install-Dir vorbereiten
 echo ""
 echo "==> Lege $INSTALL_DIR an..."
-sudo mkdir -p "$INSTALL_DIR"
-sudo chown "$USER:$USER" "$INSTALL_DIR"
+_sudo_or_root mkdir -p "$INSTALL_DIR"
+_sudo_or_root chown "$USER:$USER" "$INSTALL_DIR"
 
 # Templates und Configs in Install-Dir kopieren
 cp "$SRC_DIR/mediamtx.yml" "$INSTALL_DIR/"
@@ -108,22 +108,41 @@ cp "$SRC_DIR/docker-compose.yml" "$INSTALL_DIR/"
 cp "$SRC_DIR/Caddyfile.domain" "$INSTALL_DIR/"
 cp "$SRC_DIR/Caddyfile.ip" "$INSTALL_DIR/"
 
-# 6. Stream-Key generieren und Configs rendern
-STREAM_KEY=$(generate_stream_key)
+# 6. Stream-Key: bei Re-Run bestehenden Key bewahren (laufende Streams brechen sonst)
+EXISTING_KEY=$(read_existing_stream_key "$INSTALL_DIR")
+if [[ -n "$EXISTING_KEY" ]]; then
+    STREAM_KEY="$EXISTING_KEY"
+    echo "==> Bestehender Stream-Key wird beibehalten."
+else
+    STREAM_KEY=$(generate_stream_key)
+    echo "==> Neuer Stream-Key generiert."
+fi
 render_caddyfile "$INSTALL_DIR" "$MODE" "$DOMAIN"
 write_env_file "$INSTALL_DIR" "$STREAM_KEY" "$DOMAIN"
 
-# 7. Compose starten
+# 7. Compose starten — nutzt sudo wenn die docker-Gruppe für diesen Prozess
+# noch nicht aktiv ist (z. B. bei Frisch-Installation in derselben Session).
 echo ""
 echo "==> Starte Container..."
 cd "$INSTALL_DIR"
-docker compose up -d
+if can_run_docker; then
+    docker compose up -d
+else
+    echo "    (Docker-Gruppe für $USER greift erst nach Re-Login;"
+    echo "     verwende sudo für diesen ersten Start)"
+    _sudo_or_root docker compose up -d
+fi
 
 # Kurz warten und Health prüfen
 sleep 3
-if ! docker compose ps --status running --quiet | grep -q .; then
+if can_run_docker; then
+    DOCKER="docker"
+else
+    DOCKER="sudo docker"
+fi
+if ! $DOCKER compose ps --status running --quiet | grep -q .; then
     echo "FEHLER: Container laufen nicht. Logs:" >&2
-    docker compose logs --tail 50 >&2
+    $DOCKER compose logs --tail 50 >&2
     exit 1
 fi
 
@@ -150,4 +169,9 @@ echo " Server-Verzeichnis: $INSTALL_DIR"
 echo " Logs anzeigen:      cd $INSTALL_DIR && docker compose logs -f"
 echo " Server stoppen:     cd $INSTALL_DIR && docker compose down"
 echo " Server updaten:     cd $INSTALL_DIR && docker compose pull && docker compose up -d"
+if [[ "${DOCKER_FRESHLY_INSTALLED:-0}" == "1" ]]; then
+    echo ""
+    echo " HINWEIS: Docker wurde frisch installiert. Logge dich einmal aus"
+    echo "          und wieder ein, damit du Docker-Befehle ohne sudo nutzen kannst."
+fi
 echo ""

@@ -43,7 +43,26 @@ write_env_file() {
     local domain="$3"
 
     cat > "$work_dir/.env" <<EOF
-STREAM_KEY=${stream_key}
-DOMAIN=${domain}
+STREAM_KEY="${stream_key}"
+DOMAIN="${domain}"
 EOF
+}
+
+# read_existing_stream_key <work-dir>
+# Liest STREAM_KEY aus existierender .env, schreibt auf stdout.
+# Schreibt nichts wenn .env fehlt oder STREAM_KEY nicht gesetzt.
+read_existing_stream_key() {
+    local work_dir="$1"
+    local env_file="$work_dir/.env"
+
+    [[ -f "$env_file" ]] || return 0
+
+    # shellcheck disable=SC1090
+    (
+        set +u
+        STREAM_KEY=""
+        # shellcheck disable=SC1091
+        source "$env_file" 2>/dev/null
+        echo "$STREAM_KEY"
+    )
 }

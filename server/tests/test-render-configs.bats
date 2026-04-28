@@ -41,10 +41,36 @@ teardown() {
 @test "write_env_file: schreibt STREAM_KEY ins .env" {
     write_env_file "$WORK_DIR" "abc123def456" ""
     [[ -f "$WORK_DIR/.env" ]]
-    grep -q "STREAM_KEY=abc123def456" "$WORK_DIR/.env"
+    grep -q 'STREAM_KEY="abc123def456"' "$WORK_DIR/.env"
 }
 
 @test "write_env_file: schreibt DOMAIN ins .env" {
     write_env_file "$WORK_DIR" "xyz" "stream.example.com"
-    grep -q "DOMAIN=stream.example.com" "$WORK_DIR/.env"
+    grep -q 'DOMAIN="stream.example.com"' "$WORK_DIR/.env"
+}
+
+@test "render_caddyfile: ungültiger Modus liefert Exit 1" {
+    run render_caddyfile "$WORK_DIR" "bogus" ""
+    [[ "$status" -eq 1 ]]
+    [[ "$output" =~ "unbekannter Modus" ]]
+}
+
+@test "read_existing_stream_key: liefert leeren String wenn .env fehlt" {
+    result=$(read_existing_stream_key "$WORK_DIR")
+    [[ -z "$result" ]]
+}
+
+@test "read_existing_stream_key: liefert STREAM_KEY aus existierender .env" {
+    write_env_file "$WORK_DIR" "preserved-key-123" "example.com"
+    result=$(read_existing_stream_key "$WORK_DIR")
+    [[ "$result" == "preserved-key-123" ]]
+}
+
+@test "read_existing_stream_key: leerer STREAM_KEY in .env liefert leeren String" {
+    cat > "$WORK_DIR/.env" <<EOF
+STREAM_KEY=""
+DOMAIN=""
+EOF
+    result=$(read_existing_stream_key "$WORK_DIR")
+    [[ -z "$result" ]]
 }

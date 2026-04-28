@@ -60,3 +60,39 @@ EOF
     ! is_tier1_distro "alpine"
     ! is_tier1_distro "rhel"
 }
+
+@test "detect_distro: handles quoted ID values (ID=\"ubuntu\")" {
+    local fake_release
+    fake_release=$(mktemp)
+    cat > "$fake_release" <<'EOF'
+ID="ubuntu"
+VERSION_ID="22.04"
+EOF
+    result=$(detect_distro "$fake_release")
+    rm "$fake_release"
+    [[ "$result" == "ubuntu" ]]
+}
+
+@test "detect_distro: returns 'unknown' when ID is empty" {
+    local fake_release
+    fake_release=$(mktemp)
+    cat > "$fake_release" <<'EOF'
+ID=
+VERSION_ID="1"
+EOF
+    result=$(detect_distro "$fake_release")
+    rm "$fake_release"
+    [[ "$result" == "unknown" ]]
+}
+
+@test "detect_distro: returns 'unknown' when ID line missing entirely" {
+    local fake_release
+    fake_release=$(mktemp)
+    cat > "$fake_release" <<'EOF'
+VERSION_ID="1"
+PRETTY_NAME="Mystery Linux"
+EOF
+    result=$(detect_distro "$fake_release")
+    rm "$fake_release"
+    [[ "$result" == "unknown" ]]
+}
