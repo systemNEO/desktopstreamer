@@ -1,6 +1,8 @@
 import { spawn, ChildProcess } from 'node:child_process';
 import { EventEmitter } from 'node:events';
 
+const KILL_GRACE_MS = 5000;
+
 export interface SpawnOptions {
   profile: string;
   collection: string;
@@ -47,7 +49,14 @@ export class OBSProcessManager extends EventEmitter {
     if (!this.child) return;
     return new Promise<void>((resolve) => {
       const child = this.child!;
-      child.once('exit', () => resolve());
+      const sigkillTimer = setTimeout(() => {
+        // OBS hängt — SIGKILL nachschieben, sonst hängt App-Quit unbegrenzt
+        try { child.kill('SIGKILL'); } catch { /* ignore */ }
+      }, KILL_GRACE_MS);
+      child.once('exit', () => {
+        clearTimeout(sigkillTimer);
+        resolve();
+      });
       child.kill();
     });
   }
