@@ -15,12 +15,26 @@ const PROFILE_NAME = 'Desktopstreamer';
 const SCENE_COLLECTION = 'Desktopstreamer';
 const WS_PORT = 4455;
 const WS_URL = `ws://localhost:${WS_PORT}`;
-const STARTUP_DELAY_MS = 2500;
+const DEFAULT_STARTUP_DELAY_MS = 2500;
+const DEFAULT_CONNECT_RETRY_DELAY_MS = 1000;
+
+export interface OBSManagerOptions {
+  startupDelayMs?: number;
+  connectRetryDelayMs?: number;
+}
 
 export class OBSManager extends EventEmitter {
   private process = new OBSProcessManager();
   private ws: OBSWebSocketClient | null = null;
   private currentStatus: OBSStatus = { state: 'detecting' };
+  private startupDelayMs: number;
+  private connectRetryDelayMs: number;
+
+  constructor(opts: OBSManagerOptions = {}) {
+    super();
+    this.startupDelayMs = opts.startupDelayMs ?? DEFAULT_STARTUP_DELAY_MS;
+    this.connectRetryDelayMs = opts.connectRetryDelayMs ?? DEFAULT_CONNECT_RETRY_DELAY_MS;
+  }
 
   getStatus(): OBSStatus {
     return this.currentStatus;
@@ -79,7 +93,7 @@ export class OBSManager extends EventEmitter {
         collection: SCENE_COLLECTION
       });
       // OBS braucht Zeit, bis das WebSocket-Listening hochkommt
-      await new Promise((r) => setTimeout(r, STARTUP_DELAY_MS));
+      await new Promise((r) => setTimeout(r, this.startupDelayMs));
     }
 
     this.ws = new OBSWebSocketClient({ url: WS_URL });
@@ -106,7 +120,7 @@ export class OBSManager extends EventEmitter {
         return await this.ws!.connect();
       } catch (err) {
         lastErr = err;
-        await new Promise((r) => setTimeout(r, 1000));
+        await new Promise((r) => setTimeout(r, this.connectRetryDelayMs));
       }
     }
     throw lastErr instanceof Error ? lastErr : new Error('connect failed');

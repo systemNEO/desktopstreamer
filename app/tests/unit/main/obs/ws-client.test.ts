@@ -77,6 +77,28 @@ describe('OBSWebSocketClient', () => {
     expect(client.isConnected()).toBe(false);
   });
 
+  it('getStreamStatus berechnet Bitrate aus outputBytes-Delta', async () => {
+    let callCount = 0;
+    mockCall.mockImplementation(async (req: string) => {
+      if (req === 'GetVersion') return { obsVersion: '30.1.0' };
+      if (req === 'GetStreamStatus') {
+        callCount++;
+        if (callCount === 1) {
+          return { outputActive: true, outputBytes: 0, outputDuration: 0, outputSkippedFrames: 0, outputTotalFrames: 0 };
+        }
+        // 1 Sekunde später, 750 KB übertragen → 6 Mbps = 6000 kbps
+        return { outputActive: true, outputBytes: 750_000, outputDuration: 1000, outputSkippedFrames: 0, outputTotalFrames: 30 };
+      }
+      throw new Error(`unexpected ${req}`);
+    });
+    const client = new OBSWebSocketClient({ url: 'ws://localhost:4455' });
+    await client.connect();
+    const first = await client.getStreamStatus();
+    expect(first.bitrateKbps).toBe(0);  // Erstes Sample, kein Delta möglich
+    const second = await client.getStreamStatus();
+    expect(second.bitrateKbps).toBe(6000);  // 750_000 bytes * 8 / 1s / 1000 = 6000 kbps
+  });
+
   it('setStreamServiceCustom propagiert URL und Key', async () => {
     mockCall.mockImplementation(async (req: string) => {
       if (req === 'GetVersion') return { obsVersion: '30.1.0' };

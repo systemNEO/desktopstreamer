@@ -45,6 +45,9 @@ describe('OBSProfileWriter', () => {
     expect(data.server_port).toBe(4455);
     expect(data.auth_required).toBe(false);
     expect(data.server_enabled).toBe(true);
+    // first_load: false unterdrückt den OBS-First-Launch-Wizard (sonst
+    // überschreibt der die anderen Settings).
+    expect(data.first_load).toBe(false);
   });
 
   it('writeObsProfile ist idempotent (zweiter Aufruf überschreibt)', () => {

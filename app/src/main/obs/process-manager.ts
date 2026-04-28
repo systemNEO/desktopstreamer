@@ -18,9 +18,12 @@ export class OBSProcessManager extends EventEmitter {
     if (this.child) {
       throw new Error('OBS-Process läuft bereits');
     }
+    // OBS-Flags: nur offizielle. --disable-shutdown-check existiert NICHT,
+    // war ein Reviewer-Catch. --disable-updater unterdrückt OBS' eigenen
+    // Update-Prompt, was zu unserer Auto-Install-Logik passt.
     const args = [
       '--minimize-to-tray',
-      '--disable-shutdown-check',
+      '--disable-updater',
       '--profile', opts.profile,
       '--collection', opts.collection
     ];

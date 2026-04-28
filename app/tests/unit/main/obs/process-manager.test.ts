@@ -34,7 +34,7 @@ describe('OBSProcessManager', () => {
       '/path/to/obs64.exe',
       expect.arrayContaining([
         '--minimize-to-tray',
-        '--disable-shutdown-check',
+        '--disable-updater',
         '--profile', 'P',
         '--collection', 'C'
       ]),

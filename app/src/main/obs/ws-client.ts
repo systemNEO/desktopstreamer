@@ -20,9 +20,16 @@ export interface StreamStatus {
   durationMs: number;
 }
 
+interface BitrateSample {
+  bytes: number;
+  durationMs: number;
+}
+
 export class OBSWebSocketClient {
   private ws: OBSWebSocket;
   private connected = false;
+  // Vorheriges Sample für Bitrate-Delta-Berechnung
+  private lastBitrateSample: BitrateSample | null = null;
 
   constructor(private opts: OBSWebSocketClientOptions) {
     this.ws = new OBSWebSocket();
@@ -105,12 +112,30 @@ export class OBSWebSocketClient {
 
   async getStreamStatus(): Promise<StreamStatus> {
     const s = await this.ws.call('GetStreamStatus');
+    const bytes = (s as unknown as { outputBytes?: number }).outputBytes ?? 0;
+    const durationMs = s.outputDuration;
+
+    // Bitrate aus Delta zum letzten Sample (kbps)
+    let bitrateKbps = 0;
+    if (this.lastBitrateSample && durationMs > this.lastBitrateSample.durationMs) {
+      const dBytes = bytes - this.lastBitrateSample.bytes;
+      const dSeconds = (durationMs - this.lastBitrateSample.durationMs) / 1000;
+      if (dSeconds > 0) {
+        bitrateKbps = Math.round((dBytes * 8) / dSeconds / 1000);
+      }
+    }
+    if (s.outputActive) {
+      this.lastBitrateSample = { bytes, durationMs };
+    } else {
+      this.lastBitrateSample = null;
+    }
+
     return {
       streaming: s.outputActive,
-      bitrateKbps: 0,
+      bitrateKbps,
       droppedFrames: s.outputSkippedFrames,
       totalFrames: s.outputTotalFrames,
-      durationMs: s.outputDuration
+      durationMs
     };
   }
 }

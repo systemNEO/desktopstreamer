@@ -60,7 +60,7 @@ describe('OBSManager', () => {
 
   it('ensureReady: Happy-Path mit installiertem OBS', async () => {
     mockDetect.mockResolvedValue({ installed: true, path: '/path/to/obs64.exe' });
-    const mgr = new OBSManager();
+    const mgr = new OBSManager({ startupDelayMs: 0, connectRetryDelayMs: 0 });
     const status = await mgr.ensureReady();
     expect(status.state).toBe('ready');
     expect(mockInstall).not.toHaveBeenCalled();
@@ -74,7 +74,7 @@ describe('OBSManager', () => {
       .mockResolvedValueOnce({ installed: false })
       .mockResolvedValueOnce({ installed: true, path: '/path/to/obs64.exe' });
     mockInstall.mockResolvedValue(undefined);
-    const mgr = new OBSManager();
+    const mgr = new OBSManager({ startupDelayMs: 0, connectRetryDelayMs: 0 });
     const status = await mgr.ensureReady();
     expect(status.state).toBe('ready');
     expect(mockInstall).toHaveBeenCalled();
@@ -82,7 +82,7 @@ describe('OBSManager', () => {
 
   it('emit status-Events während Lifecycle', async () => {
     mockDetect.mockResolvedValue({ installed: true, path: '/path/to/obs64.exe' });
-    const mgr = new OBSManager();
+    const mgr = new OBSManager({ startupDelayMs: 0, connectRetryDelayMs: 0 });
     const states: string[] = [];
     mgr.on('status', (s) => states.push(s.state));
     await mgr.ensureReady();
@@ -94,7 +94,7 @@ describe('OBSManager', () => {
   it('shutdown disconnectet WS und killed Process', async () => {
     mockDetect.mockResolvedValue({ installed: true, path: '/path/to/obs64.exe' });
     mockIsRunning.mockReturnValue(true);
-    const mgr = new OBSManager();
+    const mgr = new OBSManager({ startupDelayMs: 0, connectRetryDelayMs: 0 });
     await mgr.ensureReady();
     await mgr.shutdown();
     expect(mockWsDisconnect).toHaveBeenCalled();
@@ -104,8 +104,16 @@ describe('OBSManager', () => {
   it('Install-Failure setzt status auf install-failed', async () => {
     mockDetect.mockResolvedValue({ installed: false });
     mockInstall.mockRejectedValue(new Error('download failed'));
-    const mgr = new OBSManager();
+    const mgr = new OBSManager({ startupDelayMs: 0, connectRetryDelayMs: 0 });
     const status = await mgr.ensureReady();
     expect(status.state).toBe('install-failed');
+  });
+
+  it('WebSocket-Connect-Failure setzt status auf disconnected', async () => {
+    mockDetect.mockResolvedValue({ installed: true, path: '/path/to/obs64.exe' });
+    mockWsConnect.mockRejectedValue(new Error('ws connect refused'));
+    const mgr = new OBSManager({ startupDelayMs: 0, connectRetryDelayMs: 0 });
+    const status = await mgr.ensureReady();
+    expect(status.state).toBe('disconnected');
   });
 });

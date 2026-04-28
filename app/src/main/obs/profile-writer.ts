@@ -73,6 +73,9 @@ export function writeWebSocketConfig(opts: {
   const dir = path.join(opts.appDataDir, 'plugin_config', 'obs-websocket');
   fs.mkdirSync(dir, { recursive: true });
   const cfg = {
+    // first_load: false unterdrückt den OBS-First-Launch-Wizard, der sonst
+    // die anderen Settings überschreibt. Reviewer-Catch.
+    first_load: false,
     server_enabled: true,
     server_port: opts.port,
     alerts_enabled: false,
