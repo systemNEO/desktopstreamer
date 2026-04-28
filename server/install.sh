@@ -74,6 +74,28 @@ fi
 # 3. Docker installieren
 install_docker
 
+# 3.5 Pre-Flight: prüfen ob die Ports, die wir brauchen, schon belegt sind
+echo ""
+echo "==> Prüfe Port-Verfügbarkeit (1935, 80, 443)..."
+PORTS_IN_USE=()
+for port in 1935 80 443; do
+    if command -v ss >/dev/null 2>&1; then
+        ss -tlnH "sport = :$port" 2>/dev/null | grep -q ':' && PORTS_IN_USE+=("$port")
+    elif command -v netstat >/dev/null 2>&1; then
+        netstat -tlnp 2>/dev/null | grep -qE ":$port\\s" && PORTS_IN_USE+=("$port")
+    fi
+done
+if [[ ${#PORTS_IN_USE[@]} -gt 0 ]]; then
+    echo ""
+    echo "WARNUNG: Folgende Ports sind bereits belegt: ${PORTS_IN_USE[*]}"
+    echo "Ein anderer Service (z. B. nginx, apache) blockiert diese Ports."
+    echo "Der Server kann sie nicht nutzen, bis du den anderen Dienst stoppst"
+    echo "oder umkonfigurierst."
+    echo ""
+    read -rp "Trotzdem fortfahren? (j/N) " confirm
+    [[ "${confirm,,}" == "j" ]] || exit 1
+fi
+
 # 4. Modus wählen: Domain oder IP
 echo ""
 echo "Wie soll der Server erreichbar sein?"
@@ -157,7 +179,15 @@ else
 fi
 
 # 8. Output: Connection-URLs
-PUBLIC_HOST="${DOMAIN:-$(curl -fsSL https://api.ipify.org 2>/dev/null || echo 'YOUR-SERVER-IP')}"
+# Public-IP via mehrere Fallbacks ermitteln (api.ipify → icanhazip → lokal)
+detect_public_ip() {
+    local ip
+    ip=$(curl -fsSL --max-time 5 https://api.ipify.org 2>/dev/null) && [[ -n "$ip" ]] && { echo "$ip"; return; }
+    ip=$(curl -fsSL --max-time 5 https://icanhazip.com 2>/dev/null | tr -d '[:space:]') && [[ -n "$ip" ]] && { echo "$ip"; return; }
+    ip=$(hostname -I 2>/dev/null | awk '{print $1}') && [[ -n "$ip" ]] && { echo "$ip"; return; }
+    echo "YOUR-SERVER-IP"
+}
+PUBLIC_HOST="${DOMAIN:-$(detect_public_ip)}"
 
 echo ""
 echo "============================================"

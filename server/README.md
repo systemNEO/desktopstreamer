@@ -84,6 +84,26 @@ Wenn du das Install-Skript erneut ausführst, **bleibt der bestehende Stream-Key
 
 Empfohlene VPS-Anbieter: Hetzner Cloud (CX11 ~ 4 €/Monat), Contabo VPS S, DigitalOcean Basic Droplet.
 
+## Firewall
+
+Falls ufw oder firewalld aktiv sind (Default bei vielen Anbietern), öffne die nötigen Ports:
+
+```bash
+# ufw (Ubuntu/Debian)
+sudo ufw allow 1935/tcp
+sudo ufw allow 80/tcp
+sudo ufw allow 443/tcp
+sudo ufw reload
+
+# firewalld (Fedora/RHEL)
+sudo firewall-cmd --permanent --add-port=1935/tcp
+sudo firewall-cmd --permanent --add-port=80/tcp
+sudo firewall-cmd --permanent --add-port=443/tcp
+sudo firewall-cmd --reload
+```
+
+Bei Cloud-Anbietern (Hetzner, DigitalOcean, AWS) zusätzlich die externe Firewall-/Security-Group-Regel im Web-Panel anpassen — die OS-Firewall reicht alleine oft nicht.
+
 ## Datei-Struktur
 
 ```
