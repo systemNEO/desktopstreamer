@@ -21,6 +21,8 @@
   },
   "devDependencies": {
     "@playwright/test": "^1.48.0",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
     "@types/node": "^22.0.0",
     "@types/react": "^18.3.0",
     "@types/react-dom": "^18.3.0",
@@ -30,6 +32,7 @@
     "electron-builder": "^25.0.0",
     "electron-vite": "^2.3.0",
     "eslint": "^9.0.0",
+    "jsdom": "^29.1.0",
     "postcss": "^8.4.0",
     "react": "^18.3.0",
     "react-dom": "^18.3.0",
@@ -45,7 +48,9 @@
       "output": "dist"
     },
     "linux": {
-      "target": ["AppImage"],
+      "target": [
+        "AppImage"
+      ],
       "category": "AudioVideo"
     }
   }
