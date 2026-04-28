@@ -81,7 +81,7 @@ Drei Deliverables, zwei davon ausgeliefert:
 
 | Parameter | Wert |
 |---|---|
-| Auflösung | Quelle, gecapped auf 1080p |
+| Auflösung | Quelle, gecapped auf 1920x1080 (aspect-preserving fit; Quellen ≤1080p werden nicht hochskaliert) |
 | Framerate | 60 fps wenn Quelle 60 liefert, sonst 30 |
 | Encoder | Hardware-Auto-Detect: NVENC → QSV → AMF → x264 |
 | Video-Bitrate | 6000 kbps CBR |
@@ -154,7 +154,7 @@ Drei aufeinanderfolgende Sections in einer Hauptansicht:
 |---|---|
 | `GET /helix/users` | Login-Name → für VRChat-URL `https://twitch.tv/{login}` |
 | `GET /helix/streams/key` | Aktueller Stream-Key |
-| `GET /helix/ingests` | Regional optimaler RTMP-Ingest (Latenz-optimiert) |
+| `GET /helix/ingests` | Regional optimaler RTMP-Ingest (informativ; in v1 verwenden wir den Default `rtmp://live.twitch.tv/app`, den Twitch automatisch geo-routet — Override via Helix-Ingests-Liste ist v1.1-Scope) |
 
 ### 5.3 VRChat-Output
 
@@ -183,7 +183,7 @@ electron-builder packt nur das passende Binary für die jeweilige Architektur in
 ### 6.2 Lifecycle
 
 **Beim Aktivieren von "Lokal":**
-1. App schreibt `mediamtx.yml` in `%APPDATA%/desktopstreamer/mediamtx.yml`
+1. App schreibt `mediamtx.yml` aus eingebettetem Template **bei jedem Start** neu in `%APPDATA%/desktopstreamer/mediamtx.yml` (manuelle User-Edits werden überschrieben — bewusst, damit Defaults wiederherstellbar bleiben; Custom-Configs sind v2-Scope)
 2. App spawnt MediaMTX als Child-Process mit dieser Config (RTMP `:1935`, HLS `:8888`, LL-HLS aktiv)
 3. App ermittelt LAN-IP via `os.networkInterfaces()`
 4. UI zeigt LAN-URL: `http://192.168.x.x:8888/live/index.m3u8` (VRChat im LAN)
@@ -207,7 +207,7 @@ electron-builder packt nur das passende Binary für die jeweilige Architektur in
 Drei Felder in der UI:
 - **RTMP-URL** (z. B. `rtmp://my-server.example.com/live`)
 - **Stream-Key** (frei wählbar oder vom Server vorgegeben)
-- **Output-URL** (z. B. `https://my-server.example.com/live/index.m3u8` — wird beim Stream-Start zum Kopieren angezeigt für VRChat)
+- **Output-URL** (z. B. `https://my-server.example.com/live/index.m3u8` — wird beim Stream-Start zum Kopieren angezeigt für VRChat; rein kosmetisch, App probt diese URL nicht auf Erreichbarkeit)
 
 Deckt ab: eigener Remote-Server (siehe Abschnitt 8), Restream.io, YouTube-Live (mit YouTube-Stream-Key), beliebige andere Plattformen.
 
@@ -268,7 +268,11 @@ Für v1 explizit nicht im Scope — der Lokal-Modus deckt 90% der Use-Cases ab.
 │  │ (electron-store│  │  - CF-Tunnel     │    │
 │  │  + keytar für  │  │  - URL-Parsing   │    │
 │  │  Secrets)      │  └──────────────────┘    │
-│  └────────────────┘                          │
+│  └────────────────┘  ┌──────────────────┐    │
+│                      │ CredentialVault  │    │
+│                      │  - keytar-Wrapper│    │
+│                      │  - OS-Keystore   │    │
+│                      └──────────────────┘    │
 └─────────┬────────────────────────────────────┘
           │ IPC (typed channels)
           ▼
@@ -299,9 +303,9 @@ Für v1 explizit nicht im Scope — der Lokal-Modus deckt 90% der Use-Cases ab.
 ## 10. Distribution
 
 - **electron-builder** mit drei Targets:
-  - `win-x64` (Windows 11 x86_64)
-  - `win-arm64` (Windows 11 on ARM)
-  - `win-ia32` (Windows 11 32-bit, Tier-3)
+  - `win-x64` (Windows 11 x86_64) — **Tier-1**: vollständig getestet, Release-Blocker bei Bugs
+  - `win-arm64` (Windows 11 on ARM) — **Tier-2**: gebaut und Smoke-getestet, Bugs werden gefixt aber blockieren v1-Release nicht
+  - `win-ia32` (Windows 11 32-bit) — **Tier-3**: best-effort, gebaut wenn Toolchain mitspielt, kein SLA
 - **Code-Signing**: Standard-Cert für v1 (~$50-150/Jahr); Upgrade auf EV-Cert sobald Rev > 0
 - **Auto-Update** (v1.1): `electron-updater` mit GitHub-Releases-Provider
 - **CI**: GitHub Actions — Build pro Architektur, Releases auf Git-Tag
