@@ -65,7 +65,7 @@ export type OBSStatus =
   | { state: 'disconnected'; error: string };
 
 export interface InstallProgress {
-  step: 'fetching-release' | 'downloading' | 'verifying' | 'installing' | 'done';
+  step: 'fetching-release' | 'downloading' | 'installing' | 'done';
   percent: number;       // 0..100
   message: string;
 }

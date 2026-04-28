@@ -138,4 +138,4 @@ server/tests/e2e-install.sh
 
 ## Lizenz
 
-GPL-2.0-or-later (siehe [Hauptrepo](https://github.com/systemNEO/desktopstreamer)).
+MIT (siehe [Hauptrepo](https://github.com/systemNEO/desktopstreamer)).

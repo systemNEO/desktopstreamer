@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import axios from 'axios';
-import { fetchLatestObsRelease, pickInstallerAsset } from '../../../../src/main/obs/installer';
+import { fetchLatestObsRelease, pickInstallerAsset, compareVersions } from '../../../../src/main/obs/installer';
 
 vi.mock('axios');
 
@@ -57,5 +57,25 @@ describe('pickInstallerAsset', () => {
   it('liefert null bei nicht-Windows-Platforms', () => {
     expect(pickInstallerAsset(assets, 'darwin', 'x64')).toBeNull();
     expect(pickInstallerAsset(assets, 'linux', 'x64')).toBeNull();
+  });
+});
+
+describe('compareVersions', () => {
+  it('vergleicht major.minor.patch korrekt', () => {
+    expect(compareVersions('30.0.0', '30.0.0')).toBe(0);
+    expect(compareVersions('30.0.0', '30.0.1')).toBeLessThan(0);
+    expect(compareVersions('30.1.0', '30.0.5')).toBeGreaterThan(0);
+    expect(compareVersions('31.0.0', '30.99.99')).toBeGreaterThan(0);
+  });
+
+  it('strippt Pre-Release-Suffixe', () => {
+    expect(compareVersions('30.0.0-rc1', '30.0.0')).toBe(0);
+    expect(compareVersions('30.0.0-rc1', '30.0.1')).toBeLessThan(0);
+    expect(compareVersions('30.1.0-beta', '30.0.0')).toBeGreaterThan(0);
+  });
+
+  it('handhabt fehlende Komponenten als 0', () => {
+    expect(compareVersions('30', '30.0.0')).toBe(0);
+    expect(compareVersions('30.1', '30.0.5')).toBeGreaterThan(0);
   });
 });

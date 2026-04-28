@@ -20,6 +20,18 @@ const STANDARD_PATHS_WIN = [
   'C:\\Program Files (x86)\\obs-studio\\bin\\32bit\\obs32.exe'
 ];
 
+/**
+ * Erkennt eine vorhandene OBS-Studio-Installation.
+ *
+ * Strategie (in Reihenfolge):
+ *   1. overridePath, falls gesetzt (für Tests/Custom-Installs)
+ *   2. STANDARD_PATHS_WIN-Probe via fs.existsSync
+ *   3. Windows-Registry-Query (HKLM\SOFTWARE\OBS Studio), falls process.platform === 'win32'
+ *
+ * Plattform-Hinweis: in v1 implementieren wir nur Windows-Detection.
+ * Auf macOS und Linux liefert die Funktion immer { installed: false }
+ * (außer overridePath ist gesetzt). Dort muss der User OBS manuell installieren.
+ */
 export async function detectOBSInstallation(
   opts: DetectOptions = {}
 ): Promise<OBSDetectionResult> {
