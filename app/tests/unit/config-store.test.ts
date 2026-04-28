@@ -3,10 +3,10 @@ import { ConfigStore } from '../../src/main/config-store';
 import type { AppConfig } from '@shared/types';
 
 // In-Memory-Mock von electron-store für Tests
-class FakeStore<T extends Record<string, unknown>> {
+class FakeStore<T> {
   private data: Record<string, unknown>;
   constructor(opts: { defaults: T }) {
-    this.data = { ...opts.defaults };
+    this.data = { ...(opts.defaults as object) };
   }
   get<K extends keyof T>(key: K): T[K] {
     return this.data[key as string] as T[K];
