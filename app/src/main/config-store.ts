@@ -24,6 +24,8 @@ export class ConfigStore {
 
   update(partial: Partial<AppConfig>): AppConfig {
     for (const [key, value] of Object.entries(partial)) {
+      // undefined würde die Defaults überschreiben — explizit überspringen.
+      if (value === undefined) continue;
       this.store.set(key as keyof AppConfig, value as never);
     }
     return this.getAll();

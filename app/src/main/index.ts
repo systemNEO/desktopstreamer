@@ -11,6 +11,15 @@ const __dirname = dirname(__filename);
 
 const isDev = !app.isPackaged;
 
+// Single-instance-lock muss VOR app.whenReady() angefordert werden — sonst
+// initialisiert die zweite Instanz Module/IPC, bevor sie merkt dass sie
+// quitten muss. Bei zweitem Start: ersten Window fokussieren statt Quitten
+// in dessen Process.
+const gotSingleInstanceLock = app.requestSingleInstanceLock();
+if (!gotSingleInstanceLock) {
+  app.quit();
+}
+
 let mainWindow: BrowserWindow | null = null;
 
 function createWindow(): void {
@@ -45,28 +54,31 @@ function createWindow(): void {
   }
 }
 
-void app.whenReady().then(() => {
-  // Single-instance-lock
-  const gotLock = app.requestSingleInstanceLock();
-  if (!gotLock) {
-    app.quit();
-    return;
+// Wenn zweite Instanz startet: existierendes Fenster fokussieren.
+app.on('second-instance', () => {
+  if (mainWindow) {
+    if (mainWindow.isMinimized()) mainWindow.restore();
+    mainWindow.focus();
   }
-
-  // ConfigStore initialisieren
-  const electronStore = new Store<AppConfig>({
-    defaults: ConfigStore.defaults()
-  });
-  const configStore = new ConfigStore(electronStore as never);
-
-  registerIpcHandlers(configStore);
-
-  createWindow();
-
-  app.on('activate', () => {
-    if (BrowserWindow.getAllWindows().length === 0) createWindow();
-  });
 });
+
+if (gotSingleInstanceLock) {
+  void app.whenReady().then(() => {
+    // ConfigStore initialisieren
+    const electronStore = new Store<AppConfig>({
+      defaults: ConfigStore.defaults()
+    });
+    const configStore = new ConfigStore(electronStore as never);
+
+    registerIpcHandlers(configStore);
+
+    createWindow();
+
+    app.on('activate', () => {
+      if (BrowserWindow.getAllWindows().length === 0) createWindow();
+    });
+  });
+}
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit();

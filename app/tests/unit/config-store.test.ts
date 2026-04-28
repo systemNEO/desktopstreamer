@@ -58,4 +58,17 @@ describe('ConfigStore', () => {
     const result = configStore.update({ selectedSourceId: 'foo' });
     expect(result.selectedSourceId).toBe('foo');
   });
+
+  it('update mit undefined-Wert überschreibt nicht', () => {
+    configStore.update({ selectedSourceId: 'before' });
+    configStore.update({ selectedSourceId: undefined });
+    expect(configStore.getAll().selectedSourceId).toBe('before');
+  });
+
+  it('update ist idempotent bei mehrfachem Aufruf', () => {
+    configStore.update({ selectedSourceId: 'a' });
+    configStore.update({ selectedSourceId: 'a' });
+    configStore.update({ selectedSourceId: 'a' });
+    expect(configStore.getAll().selectedSourceId).toBe('a');
+  });
 });
