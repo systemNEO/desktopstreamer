@@ -26,6 +26,20 @@ server/   Optionales Remote-Server-Setup (Docker-Compose + install.sh)
 docs/     Spec, User-Doku, Setup-Anleitungen
 ```
 
+## Schnellstart Server
+
+Auf einem VPS (Ubuntu 22.04+, Debian 12+, Fedora 40+):
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/systemNEO/desktopstreamer/main/server/install.sh | bash
+```
+
+Details und manuelle Installation siehe [`server/README.md`](server/README.md).
+
+## Schnellstart Desktop-App
+
+(Folgt mit v1-Release.)
+
 ## Plattformen
 
 | Target | Tier | Status |
