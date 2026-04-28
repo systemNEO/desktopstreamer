@@ -53,3 +53,19 @@ export interface AppConfig {
   selectedDestinationKind: DestinationKind;
   customRtmp: CustomRtmpDestination | null;
 }
+
+// OBS-Lifecycle-Status
+export type OBSStatus =
+  | { state: 'detecting' }
+  | { state: 'not-installed' }
+  | { state: 'installing'; progress: number; message: string }
+  | { state: 'install-failed'; error: string }
+  | { state: 'starting' }
+  | { state: 'ready'; obsVersion: string }
+  | { state: 'disconnected'; error: string };
+
+export interface InstallProgress {
+  step: 'fetching-release' | 'downloading' | 'verifying' | 'installing' | 'done';
+  percent: number;       // 0..100
+  message: string;
+}
